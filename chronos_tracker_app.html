@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CHRONOS - Modern Routine & Streak System</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                            900: '#14532d',
+                            accent: '#3b82f6',
+                            purple: '#8b5cf6',
+                            amber: '#f59e0b',
+                            rose: '#f43f5e'
+                        },
+                        dark: {
+                            bg: '#090d16',
+                            card: '#111827',
+                            border: '#1f2937',
+                            hover: '#1f2937',
+                            muted: '#374151'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #090d16;
+            color: #f3f4f6;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+        .mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #090d16;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1f2937;
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #374151;
+        }
+        .glow-green {
+            box-shadow: 0 0 20px -5px rgba(34, 197, 94, 0.3);
+        }
+        .glow-amber {
+            box-shadow: 0 0 20px -5px rgba(245, 158, 11, 0.3);
+        }
+        .glow-purple {
+            box-shadow: 0 0 20px -5px rgba(139, 92, 246, 0.3);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased selection:bg-brand-500 selection:text-black">
+
+    <!-- TOP NAVIGATION BAR -->
+    <header class="border-b border-dark-border bg-dark-card/80 backdrop-blur-md sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="p-2 bg-brand-500/10 border border-brand-500/20 rounded-xl text-brand-500">
+                    <i data-lucide="zap" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight bg-gradient-to-r from-white via-gray-200 to-gray-400 bg-clip-text text-transparent">
+                        CHRONOS
+                    </h1>
+                    <p class="text-xs text-gray-400 font-mono" id="currentDateDisplay">Loading date...</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2 sm:gap-4">
+                <!-- Mode Badge -->
+                <div id="modeBadge" class="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all">
+                    <!-- Populated dynamically -->
+                </div>
+
+                <!-- Streak Counter Widget -->
+                <div class="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 font-bold text-sm glow-amber">
+                    <i data-lucide="flame" class="w-4 h-4 text-amber-500 fill-amber-500 animate-pulse"></i>
+                    <span id="headerStreak">0</span> <span class="hidden sm:inline font-normal text-xs text-amber-200/70">DAYS</span>
+                </div>
+
+                <!-- Reset Data Button -->
+                <button id="btnResetData" title="Reset All Data" class="p-2 text-gray-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg border border-transparent hover:border-rose-500/20 transition">
+                    <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+        <!-- METRICS OVERVIEW BAR -->
+        <section class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+            <div class="p-4 rounded-2xl bg-dark-card border border-dark-border flex items-center gap-4">
+                <div class="p-3 bg-amber-500/10 text-amber-400 rounded-xl border border-amber-500/20">
+                    <i data-lucide="flame" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <div class="text-xs text-gray-400 font-medium">Current Streak</div>
+                    <div class="text-xl sm:text-2xl font-bold mono text-white" id="statCurrentStreak">0</div>
+                </div>
+            </div>
+
+            <div class="p-4 rounded-2xl bg-dark-card border border-dark-border flex items-center gap-4">
+                <div class="p-3 bg-brand-purple/10 text-brand-purple rounded-xl border border-brand-purple/20">
+                    <i data-lucide="trophy" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <div class="text-xs text-gray-400 font-medium">Longest Streak</div>
+                    <div class="text-xl sm:text-2xl font-bold mono text-white" id="statLongestStreak">0</div>
+                </div>
+            </div>
+
+            <div class="p-4 rounded-2xl bg-dark-card border border-dark-border flex items-center gap-4">
+                <div class="p-3 bg-brand-500/10 text-brand-500 rounded-xl border border-brand-500/20">
+                    <i data-lucide="check-circle-2" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <div class="text-xs text-gray-400 font-medium">Successful Days</div>
+                    <div class="text-xl sm:text-2xl font-bold mono text-white" id="statSuccessfulDays">0</div>
+                </div>
+            </div>
+
+            <div class="p-4 rounded-2xl bg-dark-card border border-dark-border flex items-center gap-4">
+                <div class="p-3 bg-brand-accent/10 text-brand-accent rounded-xl border border-brand-accent/20">
+                    <i data-lucide="snowflake" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <div class="text-xs text-gray-400 font-medium">Streak Freezes</div>
+                    <div class="text-xl sm:text-2xl font-bold mono text-white" id="statStreakFreezes">0 / 2</div>
+                </div>
+            </div>
+        </section>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+            <!-- LEFT/MAIN COLUMN: TODAY'S ROUTINE TASKS (8 Cols) -->
+            <div class="lg:col-span-8 space-y-6">
+                <div class="p-5 sm:p-6 rounded-2xl bg-dark-card border border-dark-border space-y-6">
+                    
+                    <!-- Task Header & Progress -->
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-dark-border pb-5">
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <h2 class="text-lg font-bold text-white" id="routineTitle">Today's Schedule</h2>
+                                <span id="closedBanner" class="hidden px-2.5 py-0.5 rounded-full text-xs font-semibold bg-brand-500/20 text-brand-400 border border-brand-500/30">
+                                    DAY CLOSED
+                                </span>
+                            </div>
+                            <p class="text-xs text-gray-400 mt-1" id="routineSub">Check off items as you complete them throughout the day.</p>
+                        </div>
+
+                        <!-- Circular/Bar Progress Stats -->
+                        <div class="flex items-center gap-4 bg-dark-bg p-3 rounded-xl border border-dark-border">
+                            <div class="space-y-1 text-right">
+                                <div class="text-xs font-medium text-gray-400">Completion</div>
+                                <div class="text-sm font-bold mono text-white" id="progressPctText">0%</div>
+                            </div>
+                            <div class="w-12 h-12 relative flex items-center justify-center">
+                                <svg class="w-12 h-12 transform -rotate-90">
+                                    <circle cx="24" cy="24" r="18" stroke="currentColor" stroke-width="4" class="text-gray-800" fill="transparent" />
+                                    <circle id="progressCircle" cx="24" cy="24" r="18" stroke="currentColor" stroke-width="4" class="text-brand-500 transition-all duration-500" stroke-dasharray="113" stroke-dashoffset="113" stroke-linecap="round" fill="transparent" />
+                                </svg>
+                                <span class="absolute text-[10px] font-bold mono" id="progressCountText">0/0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Task List Container -->
+                    <div id="taskList" class="space-y-3">
+                        <!-- Dynamically populated -->
+                    </div>
+
+                    <!-- Threshold Meter / Info Box -->
+                    <div class="p-4 rounded-xl bg-dark-bg/60 border border-dark-border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+                        <div class="flex items-center gap-2 text-gray-400">
+                            <i data-lucide="info" class="w-4 h-4 text-brand-accent flex-shrink-0"></i>
+                            <span>Streak Requirements: <strong class="text-brand-500">&ge;80% Green</strong> (Streak +1) | <strong class="text-amber-400">50-79% Yellow</strong> (Freeze) | <strong class="text-rose-400">&lt;50% Red</strong> (Reset)</span>
+                        </div>
+                        <div id="currentThresholdBadge" class="px-2.5 py-1 rounded-md bg-dark-border text-gray-300 font-mono text-[11px]">
+                            Status: Pending
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- SUNDAY WEEKLY REVIEW FORM (Only visible on Sunday or when Sunday review is active) -->
+                <div id="sundayReviewContainer" class="hidden p-5 sm:p-6 rounded-2xl bg-dark-card border border-purple-500/30 glow-purple space-y-5">
+                    <div class="flex items-center gap-3 border-b border-dark-border pb-4">
+                        <div class="p-2 bg-purple-500/20 text-purple-400 rounded-lg">
+                            <i data-lucide="calendar-range" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-md font-bold text-white">Sunday Weekly Performance Review</h3>
+                            <p class="text-xs text-gray-400">Reflect on the big picture before closing out the week.</p>
+                        </div>
+                    </div>
+
+                    <div class="space-y-4 text-sm">
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-300 mb-1.5">What went really well this week?</label>
+                            <textarea id="sundayWentWell" rows="2" class="w-full bg-dark-bg border border-dark-border rounded-xl p-3 text-white placeholder-gray-600 focus:outline-none focus:border-purple-500 transition text-xs" placeholder="Major wins, completed modules, consistent habits..."></textarea>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-300 mb-1.5">What went wrong or broke consistency?</label>
+                            <textarea id="sundayWentWrong" rows="2" class="w-full bg-dark-bg border border-dark-border rounded-xl p-3 text-white placeholder-gray-600 focus:outline-none focus:border-purple-500 transition text-xs" placeholder="Distractions, poor sleep, time misallocations..."></textarea>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-300 mb-1.5">🎯 Main Priority Target for Next Week</label>
+                            <input id="sundayNextGoal" type="text" class="w-full bg-dark-bg border border-dark-border rounded-xl p-3 text-white placeholder-gray-600 focus:outline-none focus:border-purple-500 transition text-xs" placeholder="e.g. Finish 15 LeetCode Graph problems & deploy React feature">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- NIGHT REFLECTION & CLOSE DAY SECTION -->
+                <div class="p-5 sm:p-6 rounded-2xl bg-dark-card border border-dark-border space-y-5">
+                    <div class="flex items-center gap-3 border-b border-dark-border pb-4">
+                        <div class="p-2 bg-brand-500/10 text-brand-500 rounded-lg">
+                            <i data-lucide="moon" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-md font-bold text-white">Nightly Reflection Note</h3>
+                            <p class="text-xs text-gray-400">Mandatory daily check-out to lock in progress & maintain your streak.</p>
+                        </div>
+                    </div>
+
+                    <div class="space-y-4 text-sm">
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-300 mb-1.5">1. What did you accomplish today?</label>
+                            <textarea id="noteAccomplished" rows="2" class="w-full bg-dark-bg border border-dark-border rounded-xl p-3 text-white placeholder-gray-600 focus:outline-none focus:border-brand-500 transition text-xs" placeholder="Key topics covered, code written, exercise goals hit..."></textarea>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-300 mb-1.5">2. What did you miss and why?</label>
+                            <textarea id="noteMissed" rows="2" class="w-full bg-dark-bg border border-dark-border rounded-xl p-3 text-white placeholder-gray-600 focus:outline-none focus:border-brand-500 transition text-xs" placeholder="Missed tasks, unexpected blockers, energy dips..."></textarea>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-300 mb-1.5">3. What will you improve tomorrow?</label>
+                            <textarea id="noteImprove" rows="2" class="w-full bg-dark-bg border border-dark-border rounded-xl p-3 text-white placeholder-gray-600 focus:outline-none focus:border-brand-500 transition text-xs" placeholder="Specific action step for tomorrow..."></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Submission Action -->
+                    <div class="pt-2">
+                        <button id="btnCloseDay" class="w-full py-3.5 px-4 rounded-xl bg-brand-500 hover:bg-brand-600 active:scale-[0.99] text-black font-extrabold text-sm transition flex items-center justify-center gap-2 glow-green">
+                            <i data-lucide="lock" class="w-4 h-4"></i>
+                            <span id="btnCloseDayText">SUBMIT REFLECTION & CLOSE DAY</span>
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- RIGHT COLUMN: HISTORY, CALENDAR & REFLECTION ARCHIVE (4 Cols) -->
+            <div class="lg:col-span-4 space-y-6">
+
+                <!-- CALENDAR HEATMAP / HISTORY -->
+                <div class="p-5 rounded-2xl bg-dark-card border border-dark-border space-y-4">
+                    <div class="flex items-center justify-between border-b border-dark-border pb-3">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="calendar" class="w-4 h-4 text-brand-500"></i>
+                            <h3 class="text-sm font-bold text-white">Attendance Heatmap</h3>
+                        </div>
+                        <span class="text-xs font-mono text-gray-400" id="calendarMonthYear">Sep 2026</span>
+                    </div>
+
+                    <!-- Legend -->
+                    <div class="flex items-center justify-between text-[11px] text-gray-400 px-1">
+                        <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-brand-500 inline-block"></span> Green (&ge;80%)</span>
+                        <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block"></span> Yellow (Freeze)</span>
+                        <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block"></span> Red (&lt;50%)</span>
+                    </div>
+
+                    <!-- Days Grid Header -->
+                    <div class="grid grid-cols-7 gap-1 text-center text-[10px] font-mono text-gray-500 font-bold uppercase">
+                        <div>M</div><div>T</div><div>W</div><div>T</div><div>F</div><div>S</div><div>S</div>
+                    </div>
+
+                    <!-- Calendar Grid -->
+                    <div id="calendarGrid" class="grid grid-cols-7 gap-1.5">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+
+                <!-- PAST REFLECTION LOGS -->
+                <div class="p-5 rounded-2xl bg-dark-card border border-dark-border space-y-4">
+                    <div class="flex items-center justify-between border-b border-dark-border pb-3">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="book-open" class="w-4 h-4 text-brand-accent"></i>
+                            <h3 class="text-sm font-bold text-white">Recent Logs</h3>
+                        </div>
+                        <span class="text-xs text-gray-500 font-mono" id="logCount">0 records</span>
+                    </div>
+
+                    <div id="historyLogsList" class="space-y-3 max-h-[380px] overflow-y-auto pr-1">
+                        <!-- Dynamically filled with log cards -->
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+    </main>
+
+    <script>
+        /* ==========================================================================
+           ROUTINE CONFIGURATIONS (College vs. Sunday Modes)
+           ========================================================================== */
+        const MONDAY_SATURDAY_ROUTINE = [
+            { id: 'ex_am', name: 'Exercise & Fitness', time: '04:30 - 05:00 AM', tag: 'Health', icon: 'dumbbell' },
+            { id: 'break_am', name: 'Break / Freshen up', time: '05:00 - 05:15 AM', tag: 'Rest', icon: 'coffee' },
+            { id: 'dsa_am', name: 'DSA Practice & Problem Solving', time: '05:15 - 07:00 AM', tag: 'Skill', icon: 'code-2' },
+            { id: 'comm_am', name: 'Communication Skills', time: '07:00 - 07:40 AM', tag: 'Skill', icon: 'message-square' },
+            { id: 'college_day', name: 'College Hours & Lectures', time: '07:40 AM - 07:30 PM', tag: 'College', icon: 'graduation-cap' },
+            { id: 'proj_pm', name: 'Project Work & Development', time: '07:30 - 09:00 PM', tag: 'Project', icon: 'folder-git-2' },
+            { id: 'apti_pm', name: 'Aptitude & Reasoning', time: '09:00 - 10:00 PM', tag: 'Prep', icon: 'brain' }
+        ];
+
+        const SUNDAY_ROUTINE = [
+            { id: 'sun_morn', name: 'Morning Power Routine (Exercise/DSA/Comm)', time: '04:30 - 08:00 AM', tag: 'Routine', icon: 'sun' },
+            { id: 'sun_b1', name: 'Block 1: Deep Project Work', time: '08:00 - 10:00 AM', tag: 'Project', icon: 'cpu' },
+            { id: 'sun_r1', name: 'Rest / Coffee Break', time: '10:00 - 10:30 AM', tag: 'Rest', icon: 'coffee' },
+            { id: 'sun_b2', name: 'Block 2: Skill Acquisition & Docs', time: '10:30 AM - 12:30 PM', tag: 'Skill', icon: 'book-open' },
+            { id: 'sun_r2', name: 'Lunch & Extended Rest', time: '12:30 - 01:30 PM', tag: 'Rest', icon: 'utensils' },
+            { id: 'sun_b3', name: 'Block 3: Project Building', time: '01:30 - 03:30 PM', tag: 'Project', icon: 'layers' },
+            { id: 'sun_r3', name: 'Evening Refresh Break', time: '03:30 - 04:00 PM', tag: 'Rest', icon: 'smile' },
+            { id: 'sun_b4', name: 'Block 4: Advanced Topics / DSA Hard', time: '04:00 - 06:00 PM', tag: 'Skill', icon: 'terminal' },
+            { id: 'sun_ex', name: 'Outdoor / Fitness / Active Recovery', time: '06:00 - 07:00 PM', tag: 'Health', icon: 'activity' },
+            { id: 'sun_b5', name: 'Block 5: Code Review & Refactoring', time: '07:00 - 08:00 PM', tag: 'Project', icon: 'git-merge' },
+            { id: 'sun_din', name: 'Dinner & Relaxation', time: '08:00 - 09:00 PM', tag: 'Rest', icon: 'moon' },
+            { id: 'sun_apti', name: 'Aptitude Practice', time: '09:00 - 10:00 PM', tag: 'Prep', icon: 'brain' }
+        ];
+
+        /* ==========================================================================
+           STATE MANAGEMENT
+           ========================================================================== */
+        const STORAGE_KEY = 'CHRONOS_APP_DATA_V1';
+
+        let appState = {
+            currentStreak: 0,
+            longestStreak: 0,
+            successfulDays: 0,
+            streakFreezes: 0,
+            history: {}, // Format: { 'YYYY-MM-DD': { date, mode, tasks: {}, percentage, status, note: {}, sundayReview: {} } }
+            todayCheckedTasks: {} // Format: { taskId: boolean }
+        };
+
+        // Date Helpers
+        const todayDateObj = new Date();
+        const todayFormatted = formatDateKey(todayDateObj);
+        const isSunday = todayDateObj.getDay() === 0;
+
+        function formatDateKey(date) {
+            const yyyy = date.getFullYear();
+            const mm = String(date.getMonth() + 1).padStart(2, '0');
+            const dd = String(date.getDate()).padStart(2, '0');
+            return `${yyyy}-${mm}-${dd}`;
+        }
+
+        function loadState() {
+            try {
+                const saved = localStorage.getItem(STORAGE_KEY);
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    appState = { ...appState, ...parsed };
+                }
+            } catch (e) {
+                console.error("Failed to load local storage state", e);
+            }
+
+            // If today was already closed in history, load checked tasks & notes
+            if (appState.history[todayFormatted]) {
+                const todayRecord = appState.history[todayFormatted];
+                appState.todayCheckedTasks = todayRecord.tasks || {};
+            }
+        }
+
+        function saveState() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+            } catch (e) {
+                console.error("Failed to save state", e);
+            }
+        }
+
+        /* ==========================================================================
+           UI RENDER ENGINE
+           ========================================================================== */
+        function initApp() {
+            loadState();
+            renderHeaderAndStats();
+            renderModeBadge();
+            renderRoutineTasks();
+            renderCalendarHeatmap();
+            renderHistoryLogs();
+            setupEventListeners();
+            lucide.createIcons();
+        }
+
+        function renderHeaderAndStats() {
+            // Header Date
+            const options = { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' };
+            document.getElementById('currentDateDisplay').textContent = todayDateObj.toLocaleDateString('en-US', options);
+
+            // Stats
+            document.getElementById('headerStreak').textContent = appState.currentStreak;
+            document.getElementById('statCurrentStreak').textContent = appState.currentStreak;
+            document.getElementById('statLongestStreak').textContent = appState.longestStreak;
+            document.getElementById('statSuccessfulDays').textContent = appState.successfulDays;
+            document.getElementById('statStreakFreezes').textContent = `${appState.streakFreezes} / 2`;
+        }
+
+        function renderModeBadge() {
+            const badgeEl = document.getElementById('modeBadge');
+            if (isSunday) {
+                badgeEl.className = 'flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-purple-500/10 border border-purple-500/30 text-purple-400 glow-purple';
+                badgeEl.innerHTML = `<i data-lucide="sun" class="w-3.5 h-3.5"></i> SUNDAY SKILL MODE`;
+                document.getElementById('routineTitle').textContent = "Sunday Acceleration Schedule";
+                document.getElementById('sundayReviewContainer').classList.remove('hidden');
+            } else {
+                badgeEl.className = 'flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-brand-500/10 border border-brand-500/30 text-brand-400 glow-green';
+                badgeEl.innerHTML = `<i data-lucide="book-open" class="w-3.5 h-3.5"></i> COLLEGE MODE`;
+                document.getElementById('routineTitle').textContent = "College Day Routine";
+                document.getElementById('sundayReviewContainer').classList.add('hidden');
+            }
+        }
+
+        function renderRoutineTasks() {
+            const routineList = isSunday ? SUNDAY_ROUTINE : MONDAY_SATURDAY_ROUTINE;
+            const taskContainer = document.getElementById('taskList');
+            taskContainer.innerHTML = '';
+
+            let completedCount = 0;
+            const totalTasks = routineList.length;
+
+            const isDayClosed = !!(appState.history[todayFormatted] && appState.history[todayFormatted].closed);
+
+            routineList.forEach(task => {
+                const isChecked = !!appState.todayCheckedTasks[task.id];
+                if (isChecked) completedCount++;
+
+                const taskRow = document.createElement('div');
+                taskRow.className = `p-3.5 sm:p-4 rounded-xl border transition-all duration-200 flex items-center justify-between gap-3 ${
+                    isChecked 
+                        ? 'bg-brand-500/5 border-brand-500/30 text-white' 
+                        : 'bg-dark-bg border-dark-border text-gray-300 hover:border-gray-700'
+                }`;
+
+                taskRow.innerHTML = `
+                    <div class="flex items-center gap-3 sm:gap-4 overflow-hidden">
+                        <button 
+                            onclick="toggleTask('${task.id}')" 
+                            ${isDayClosed ? 'disabled' : ''}
+                            class="w-6 h-6 rounded-lg border flex items-center justify-center flex-shrink-0 transition ${
+                                isChecked 
+                                    ? 'bg-brand-500 border-brand-500 text-black' 
+                                    : 'border-gray-600 hover:border-brand-500 text-transparent'
+                            }">
+                            <i data-lucide="check" class="w-4 h-4 stroke-[3]"></i>
+                        </button>
+
+                        <div class="p-2 rounded-lg ${isChecked ? 'bg-brand-500/10 text-brand-400' : 'bg-dark-card text-gray-400'}">
+                            <i data-lucide="${task.icon}" class="w-4 h-4"></i>
+                        </div>
+
+                        <div class="truncate">
+                            <div class="text-xs sm:text-sm font-semibold truncate ${isChecked ? 'line-through text-gray-400' : 'text-gray-100'}">
+                                ${task.name}
+                            </div>
+                            <div class="text-[11px] font-mono text-gray-400 flex items-center gap-2 mt-0.5">
+                                <span>${task.time}</span>
+                                <span class="text-gray-600">•</span>
+                                <span class="px-1.5 py-0.2 rounded text-[10px] bg-dark-card border border-dark-border text-gray-400">${task.tag}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                taskContainer.appendChild(taskRow);
+            });
+
+            // Update Progress UI
+            const pct = totalTasks > 0 ? Math.round((completedCount / totalTasks) * 100) : 0;
+            document.getElementById('progressPctText').textContent = `${pct}%`;
+            document.getElementById('progressCountText').textContent = `${completedCount}/${totalTasks}`;
+
+            // Circular progress calculations (Radius = 18, circumference ~113)
+            const circle = document.getElementById('progressCircle');
+            const offset = 113 - (113 * pct) / 100;
+            circle.style.strokeDashoffset = offset;
+
+            // Update Threshold Status Badge
+            const thresholdBadge = document.getElementById('currentThresholdBadge');
+            if (pct >= 80) {
+                thresholdBadge.className = 'px-2.5 py-1 rounded-md bg-brand-500/20 text-brand-400 font-mono text-[11px] border border-brand-500/30';
+                thresholdBadge.textContent = 'Status: GREEN (Streak +1)';
+                circle.style.stroke = '#22c55e';
+            } else if (pct >= 50) {
+                thresholdBadge.className = 'px-2.5 py-1 rounded-md bg-amber-500/20 text-amber-400 font-mono text-[11px] border border-amber-500/30';
+                thresholdBadge.textContent = 'Status: YELLOW (Streak Freeze)';
+                circle.style.stroke = '#f59e0b';
+            } else {
+                thresholdBadge.className = 'px-2.5 py-1 rounded-md bg-rose-500/20 text-rose-400 font-mono text-[11px] border border-rose-500/30';
+                thresholdBadge.textContent = 'Status: RED (Streak Reset)';
+                circle.style.stroke = '#f43f5e';
+            }
+
+            // Closed Day Controls state
+            const closedBanner = document.getElementById('closedBanner');
+            const btnCloseDay = document.getElementById('btnCloseDay');
+            const btnCloseDayText = document.getElementById('btnCloseDayText');
+
+            if (isDayClosed) {
+                closedBanner.classList.remove('hidden');
+                btnCloseDay.classList.add('opacity-50', 'cursor-not-allowed');
+                btnCloseDayText.textContent = "DAY ALREADY CLOSED";
+
+                // Populate Form inputs if saved
+                const savedRecord = appState.history[todayFormatted];
+                if (savedRecord.note) {
+                    document.getElementById('noteAccomplished').value = savedRecord.note.accomplished || '';
+                    document.getElementById('noteMissed').value = savedRecord.note.missed || '';
+                    document.getElementById('noteImprove').value = savedRecord.note.improve || '';
+                }
+                if (savedRecord.sundayReview) {
+                    document.getElementById('sundayWentWell').value = savedRecord.sundayReview.wentWell || '';
+                    document.getElementById('sundayWentWrong').value = savedRecord.sundayReview.wentWrong || '';
+                    document.getElementById('sundayNextGoal').value = savedRecord.sundayReview.nextGoal || '';
+                }
+            } else {
+                closedBanner.classList.add('hidden');
+                btnCloseDay.classList.remove('opacity-50', 'cursor-not-allowed');
+                btnCloseDayText.textContent = isSunday ? "SUBMIT REVIEW & CLOSE WEEK" : "SUBMIT REFLECTION & CLOSE DAY";
+            }
+
+            lucide.createIcons();
+        }
+
+        function toggleTask(taskId) {
+            // Prevent modification if closed
+            if (appState.history[todayFormatted] && appState.history[todayFormatted].closed) return;
+
+            appState.todayCheckedTasks[taskId] = !appState.todayCheckedTasks[taskId];
+            saveState();
+            renderRoutineTasks();
+        }
+
+        function renderCalendarHeatmap() {
+            const gridEl = document.getElementById('calendarGrid');
+            gridEl.innerHTML = '';
+
+            // Render current month (September 2026 / current date context)
+            const year = todayDateObj.getFullYear();
+            const month = todayDateObj.getMonth();
+
+            const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+            document.getElementById('calendarMonthYear').textContent = `${monthNames[month]} ${year}`;
+
+            const firstDay = new Date(year, month, 1).getDay(); // Day of week (0-6)
+            // Adjust for Monday start (0=Mon, 6=Sun)
+            const startingOffset = (firstDay === 0 ? 6 : firstDay - 1);
+            const totalDaysInMonth = new Date(year, month + 1, 0).getDate();
+
+            // Empty padding slots
+            for (let i = 0; i < startingOffset; i++) {
+                const emptySlot = document.createElement('div');
+                emptySlot.className = 'h-7 rounded-md bg-dark-bg/40 opacity-30';
+                gridEl.appendChild(emptySlot);
+            }
+
+            // Fill actual calendar days
+            for (let day = 1; day <= totalDaysInMonth; day++) {
+                const dKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const record = appState.history[dKey];
+
+                const dayBox = document.createElement('div');
+                dayBox.className = 'h-7 rounded-md flex items-center justify-center text-[10px] font-mono border transition relative group';
+
+                if (record) {
+                    if (record.status === 'GREEN') {
+                        dayBox.className += ' bg-brand-500/20 text-brand-400 border-brand-500/40 font-bold';
+                    } else if (record.status === 'YELLOW') {
+                        dayBox.className += ' bg-amber-500/20 text-amber-400 border-amber-500/40 font-bold';
+                    } else if (record.status === 'RED') {
+                        dayBox.className += ' bg-rose-500/20 text-rose-400 border-rose-500/40 font-bold';
+                    }
+                } else {
+                    dayBox.className += ' bg-dark-bg border-dark-border text-gray-500 hover:border-gray-600';
+                }
+
+                // Highlight today
+                if (dKey === todayFormatted) {
+                    dayBox.className += ' ring-2 ring-brand-500 ring-offset-2 ring-offset-dark-card';
+                }
+
+                dayBox.textContent = day;
+                gridEl.appendChild(dayBox);
+            }
+        }
+
+        function renderHistoryLogs() {
+            const logsList = document.getElementById('historyLogsList');
+            logsList.innerHTML = '';
+
+            const keys = Object.keys(appState.history).sort().reverse();
+            document.getElementById('logCount').textContent = `${keys.length} entries`;
+
+            if (keys.length === 0) {
+                logsList.innerHTML = `
+                    <div class="text-center py-8 text-gray-500 text-xs">
+                        <i data-lucide="archive" class="w-8 h-8 mx-auto mb-2 opacity-40"></i>
+                        No closed day records yet.<br/>Complete your first reflection to start your log.
+                    </div>
+                `;
+                lucide.createIcons();
+                return;
+            }
+
+            keys.forEach(k => {
+                const item = appState.history[k];
+                const card = document.createElement('div');
+                card.className = 'p-3 rounded-xl bg-dark-bg border border-dark-border space-y-2 text-xs';
+
+                let statusBadge = '';
+                if (item.status === 'GREEN') statusBadge = '<span class="px-2 py-0.5 rounded text-[10px] bg-brand-500/20 text-brand-400 border border-brand-500/30">GREEN</span>';
+                else if (item.status === 'YELLOW') statusBadge = '<span class="px-2 py-0.5 rounded text-[10px] bg-amber-500/20 text-amber-400 border border-amber-500/30">YELLOW</span>';
+                else statusBadge = '<span class="px-2 py-0.5 rounded text-[10px] bg-rose-500/20 text-rose-400 border border-rose-500/30">RED</span>';
+
+                card.innerHTML = `
+                    <div class="flex items-center justify-between border-b border-dark-border pb-2">
+                        <span class="font-mono text-gray-300 font-bold">${item.date} (${item.mode})</span>
+                        <div class="flex items-center gap-2">
+                            <span class="font-mono text-gray-400">${item.percentage}%</span>
+                            ${statusBadge}
+                        </div>
+                    </div>
+                    ${item.note && item.note.accomplished ? `<p class="text-gray-300 italic line-clamp-2">"${item.note.accomplished}"</p>` : ''}
+                    ${item.sundayReview && item.sundayReview.nextGoal ? `<p class="text-purple-400 font-medium">🎯 Goal: ${item.sundayReview.nextGoal}</p>` : ''}
+                `;
+
+                logsList.appendChild(card);
+            });
+
+            lucide.createIcons();
+        }
+
+        function setupEventListeners() {
+            // Close Day Button Trigger
+            document.getElementById('btnCloseDay').addEventListener('click', handleCloseDay);
+
+            // Data Reset Trigger
+            document.getElementById('btnResetData').addEventListener('click', () => {
+                if (confirm('Are you sure you want to reset all streak and history data? This action cannot be undone.')) {
+                    localStorage.removeItem(STORAGE_KEY);
+                    location.reload();
+                }
+            });
+        }
+
+        function handleCloseDay() {
+            // If day is already closed
+            if (appState.history[todayFormatted] && appState.history[todayFormatted].closed) {
+                alert('This day has already been closed and locked in!');
+                return;
+            }
+
+            const accomplished = document.getElementById('noteAccomplished').value.trim();
+            const missed = document.getElementById('noteMissed').value.trim();
+            const improve = document.getElementById('noteImprove').value.trim();
+
+            if (!accomplished || !improve) {
+                alert('Please complete the mandatory reflection notes before closing the day.');
+                return;
+            }
+
+            // Sunday extra validations
+            let sundayReviewData = null;
+            if (isSunday) {
+                const wentWell = document.getElementById('sundayWentWell').value.trim();
+                const wentWrong = document.getElementById('sundayWentWrong').value.trim();
+                const nextGoal = document.getElementById('sundayNextGoal').value.trim();
+
+                sundayReviewData = { wentWell, wentWrong, nextGoal };
+            }
+
+            // Calculate metrics
+            const routineList = isSunday ? SUNDAY_ROUTINE : MONDAY_SATURDAY_ROUTINE;
+            let completedCount = 0;
+            routineList.forEach(t => {
+                if (appState.todayCheckedTasks[t.id]) completedCount++;
+            });
+
+            const pct = Math.round((completedCount / routineList.length) * 100);
+
+            // Determine Status & Streak logic
+            let dayStatus = 'RED';
+            if (pct >= 80) {
+                dayStatus = 'GREEN';
+                appState.currentStreak += 1;
+                appState.successfulDays += 1;
+
+                // Check Streak Freeze Award (1 freeze every 7 consecutive days)
+                if (appState.currentStreak % 7 === 0 && appState.streakFreezes < 2) {
+                    appState.streakFreezes += 1;
+                }
+
+                // Confetti celebration for green day!
+                confetti({
+                    particleCount: 100,
+                    spread: 70,
+                    origin: { y: 0.6 }
+                });
+
+            } else if (pct >= 50) {
+                dayStatus = 'YELLOW';
+                if (appState.streakFreezes > 0) {
+                    appState.streakFreezes -= 1; // Consume freeze, maintain streak
+                    alert('Streak Freeze consumed! Your streak has been preserved.');
+                } else {
+                    // No freezes left -> Streak resets
+                    appState.currentStreak = 0;
+                }
+            } else {
+                dayStatus = 'RED';
+                appState.currentStreak = 0;
+            }
+
+            // Update Longest Streak
+            if (appState.currentStreak > appState.longestStreak) {
+                appState.longestStreak = appState.currentStreak;
+            }
+
+            // Lock Record in History
+            appState.history[todayFormatted] = {
+                date: todayFormatted,
+                mode: isSunday ? 'Sunday Skill' : 'College',
+                tasks: { ...appState.todayCheckedTasks },
+                percentage: pct,
+                status: dayStatus,
+                closed: true,
+                note: { accomplished, missed, improve },
+                sundayReview: sundayReviewData
+            };
+
+            saveState();
+
+            // Refresh UI
+            renderHeaderAndStats();
+            renderRoutineTasks();
+            renderCalendarHeatmap();
+            renderHistoryLogs();
+        }
+
+        // Initialize App on DOM load
+        window.addEventListener('DOMContentLoaded', initApp);
+    </script>
+</body>
+</html>
